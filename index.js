@@ -1,31 +1,4 @@
-let token = "24.0134f23f83f85217d4c25c92f43c4e16.2592000.1523539611.282335-10922511";
-// getToken((r)=>{
-//   token = r.access_token;
-// })
 
-bindFileInput('file', (base64) => {
-  compressImage(base64, (r) => {
-    base64 = r.substring(r.indexOf(',') + 1);
-    getImageLocation(base64, (info)=>{
-      console.log(info);
-      
-      const location = info.words_result[0].location;
-      drawMosaic({
-        left: location.left,
-        top: location.top,
-        height: location.height,
-        width: location.width,
-        offsetLeft: 1,
-        base64: r,
-        callback: (result)=>{
-          document.querySelector('#img').src = result
-        }
-      })
-      
-    });
-
-  });
-})
 /**
  * 获取图片中需要打码的位置
  * @param {string} base64 
@@ -55,20 +28,25 @@ function bindFileInput(id, callback) {
       info.innerHTML = '没有选择文件';
       return;
     }
-    // 获取File引用:
-    const file = fileInput.files[0];
-    if (file.type !== 'image/jpeg' && file.type !== 'image/png' && file.type !== 'image/gif') {
-      alert('不是有效的图片文件!');
-      return;
-    }
     // 读取文件:
     const reader = new FileReader();
     reader.onload = function (e) {
       const data = e.target.result;
       callback && callback(data);
     };
-    // 以DataURL的形式读取文件:
-    reader.readAsDataURL(file);
+
+    // 获取File引用:
+    for (let index = 0; index < fileInput.files.length; index++) {
+      const file = fileInput.files[index];
+      if (file.type !== 'image/jpeg' && file.type !== 'image/png' && file.type !== 'image/gif') {
+        console.log(file.name + ' 不是有效的图片文件!');
+        return;
+      }
+      // 以DataURL的形式读取文件:
+      setTimeout(() => {
+        reader.readAsDataURL(file);
+      }, 1000 * index);
+    }
   });
 }
 /**
@@ -106,7 +84,6 @@ function compressImage(base64, callback) {
 
     context.clearRect(0, 0, targetWidth, targetHeight);
     context.drawImage(img, 0, 0, targetWidth, targetHeight);
-    console.log(context.getImageData(0, 0, targetWidth, targetHeight));
     console.log(`压缩成功, 宽度：${targetWidth}, 高度：${targetHeight}`);
     callback && callback(canvas.toDataURL('image/png'))
   }

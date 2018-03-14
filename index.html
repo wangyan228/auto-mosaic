@@ -9,11 +9,44 @@
 </head>
 
 <body>
-  <input type="file" id="file">
-  <img src="" alt="" id="img">
+  <input type="file" multiple="multiple" id="file">
+  <div id="img-container">
+    
+  </div>
   <script src="https://cdn.bootcss.com/zepto/1.2.0/zepto.min.js"></script>
   <script src="./token.js"></script>
   <script src="./index.js"></script>
+  <script>
+    let token = "24.0134f23f83f85217d4c25c92f43c4e16.2592000.1523539611.282335-10922511";
+    const imgCon = document.querySelector('#img-container');
+    // getToken((r)=>{
+    //   token = r.access_token;
+    // })
+    bindFileInput('file', (base64) => {
+      compressImage(base64, (compressBase64) => {
+        base64 = compressBase64.substring(compressBase64.indexOf(',') + 1);
+        getImageLocation(base64, (info) => {
+          console.log(info);
+          const location = info.words_result[0].location;
+          drawMosaic({
+            left: location.left,
+            top: location.top,
+            height: location.height,
+            width: location.width,
+            offsetLeft: 1,
+            base64: compressBase64,
+            callback: (result) => {
+              const imgElem = document.createElement('img');
+              imgElem.src = result;
+              imgCon.appendChild(imgElem);
+            }
+          })
+
+        });
+
+      });
+    })
+  </script>
 </body>
 
 </html>
