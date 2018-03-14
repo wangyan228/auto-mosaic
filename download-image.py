@@ -43,9 +43,10 @@ def html2imgurl(html_content):
 
 def html2pageurl(html_content):
   # /search/flip?tn=baiduimage&ie=utf-8&word=%E8%BD%A6%E7%89%8C&pn=160&gsm=c8&ct=&ic=0&lm=-1&width=0&height=0
-  pattern = re.compile('/search/flip?tn=baiduimage&ie=utf-8&word=(\w)&pn=(\w)&gsm=(\w)&ct=&ic=0&lm=-1&width=0&height=0')
+  pattern = re.compile('\/search\/flip\?[\d\w\=\&\-\%]+')
   list_raw = re.findall(pattern, html_content)
-  
+  list_page_url = ['https://image.baidu.com' + ''.join(i) for i in list_raw]
+  return list_page_url
 
 def saveimg_requests(imgurl,filename=''):
 #http://stackoverflow.com/questions/13137817/how-to-download-image-using-requests
@@ -65,11 +66,24 @@ def saveimg_requests(imgurl,filename=''):
                     f.write(chunk)
 
 
-content = url2html_requests('https://image.baidu.com/search/index?tn=baiduimage&ct=201326592&lm=-1&cl=2&ie=gbk&word=%B3%B5%C5%C6&fr=ala&ala=1&alatpl=adress&pos=0&hs=2&xthttps=111111')
+content = url2html_requests('https://image.baidu.com/search/flip?tn=baiduimage&ipn=r&ct=201326592&cl=2&lm=-1&st=-1&fm=result&fr=&sf=1&fmq=1521007558581_R&pv=&ic=0&nc=1&z=&se=1&showtab=0&fb=0&width=&height=&face=0&istype=2&ie=utf-8&ctd=1521007558582%5E00_844X826&word=%E8%BD%A6%E7%89%8C')
 
-images = html2imgurl(content)
+pages = html2pageurl(content)
+print(pages)
+for page in pages:
+  content = url2html_requests(page)
+  images = html2imgurl(content)
+  for image in images:
+    try:
+      saveimg_requests(image)
+    except:
+      pass
+    
+print('finish!')
 
-for image in images:
-  saveimg_requests(image)
 
-print(images)
+
+
+
+
+#print(images)

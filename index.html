@@ -10,42 +10,67 @@
 
 <body>
   <input type="file" multiple="multiple" id="file">
-  <div id="img-container">
-    
-  </div>
+  <div id="img-container"></div>
   <script src="https://cdn.bootcss.com/zepto/1.2.0/zepto.min.js"></script>
   <script src="./token.js"></script>
   <script src="./index.js"></script>
   <script>
-    let token = "24.0134f23f83f85217d4c25c92f43c4e16.2592000.1523539611.282335-10922511";
     const imgCon = document.querySelector('#img-container');
     // getToken((r)=>{
     //   token = r.access_token;
     // })
     bindFileInput('file', (base64) => {
-      compressImage(base64, (compressBase64) => {
+      compressImage(base64).then((compressBase64) => {
         base64 = compressBase64.substring(compressBase64.indexOf(',') + 1);
-        getImageLocation(base64, (info) => {
-          console.log(info);
-          const location = info.words_result[0].location;
-          drawMosaic({
-            left: location.left,
-            top: location.top,
-            height: location.height,
-            width: location.width,
-            offsetLeft: 1,
-            base64: compressBase64,
-            callback: (result) => {
-              const imgElem = document.createElement('img');
-              imgElem.src = result;
-              imgCon.appendChild(imgElem);
+        getImageInfo(base64, 'idcard').then((info) => {
+          const data = info.words_result;
+          console.log(data);
+          if (data.length === 0) return;
+          let location = []
+          for (const key in data) {
+            if (key === '民族' || key === '性别') continue;
+            if (data.hasOwnProperty(key)) {
+              let element = data[key].location;
+              if (key === '住址') {
+                element.height /= 2;
+                location.push({
+                  height: element.height,
+                  top: element.top,
+                  left: element.left + element.width / 2,
+                  width: element.width / 2
+                });
+                location.push({
+                  height: element.height,
+                  top: element.top + element.height,
+                  left: element.left,
+                  width: element.width
+                });
+              } else if (key === '公民身份号码'){
+                location.push(offsetLocation(element, {left: 0.4, right: 0.4}))
+              } else if (key === '姓名'){
+                location.push(offsetLocation(element, {left: 0.4}))
+              } else if (key === '出生'){
+                location.push(offsetLocation(element, {left: 0.2}))
+              } else {
+                location.push(element)
+              }
             }
+          }
+          drawMosaic({
+            location,
+            base64: compressBase64
+          }).then((result) => {
+            appendImage(result);
           })
-
-        });
-
-      });
+        })
+      })
     })
+    function appendImage(result) {
+      const imgElem = document.createElement('img');
+      imgElem.style.width = '400px';
+      imgElem.src = result;
+      imgCon.appendChild(imgElem);
+    }
   </script>
 </body>
 

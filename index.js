@@ -1,15 +1,46 @@
-
+const token = "24.0134f23f83f85217d4c25c92f43c4e16.2592000.1523539611.282335-10922511";
+const urlParams = '?access_token=' + token;
 /**
  * 获取图片中需要打码的位置
  * @param {string} base64 
- * @param {function} callback 
+ * @param {string} type 
+ * general ----------- 文本
+ * 
+ * idcard ------------ 身份证  
+ * driving_license ---- 驾驶证
+ * 
+ * vehicle_license ---- 行驶证
+ * 
+ * bankcard ---------- 银行卡
+ * 
+ * license_plate ------ 车牌
+ * 
+ * business_license --- 营业执照
+ * 
+ * receipt ------------ 通用票据
  */
-function getImageLocation(base64, callback) {
-  const urlParams = '?access_token=' + token;
-  $.post('https://aip.baidubce.com/rest/2.0/ocr/v1/general' + urlParams, {
-    image: base64,
-  }, (r) => {
-    callback && callback(r);
+function getImageInfo(base64, type) {
+  return new Promise(function (resolve, reject) {
+    $.post(`https://aip.baidubce.com/rest/2.0/ocr/v1/${type}${urlParams}`, {
+      image: base64,
+      id_card_side: 'front'
+    }, (r) => {
+      resolve(JSON.parse(r));
+    }, (err)=>{
+      reject(err);
+    })
+  })
+}
+
+function getImageCarLocation(base64) {
+  return new Promise(function (resolve, reject) {
+    $.post('https://aip.baidubce.com/rest/2.0/ocr/v1/license_plate' + urlParams, {
+      image: base64,
+    }, (r) => {
+      resolve(r)
+    }, (err)=>{
+      reject(err)
+    })
   })
 }
 /**
@@ -45,7 +76,7 @@ function bindFileInput(id, callback) {
       // 以DataURL的形式读取文件:
       setTimeout(() => {
         reader.readAsDataURL(file);
-      }, 1000 * index);
+      }, 500 * index);
     }
   });
 }
@@ -61,34 +92,38 @@ function compressImage(base64, callback) {
   const maxHeight = 600;
 
   let originWidth, originHeight, targetWidth, targetHeight, scale;
-  img.onload = function () {
-    originWidth = this.width;
-    originHeight = this.height;
-
-    if (originWidth > maxWidth) {
-      scale = originWidth / maxWidth;
-      targetWidth = maxWidth;
-      targetHeight = parseInt(originHeight / scale);
-    } else if (originHeight > maxHeight) {
-      scale = originHeight / maxHeight;
-      targetHeight = maxHeight;
-      targetWidth = parseInt(originWidth / scale);
-    } else {
-      // 不需要压缩
-      console.log(`不需要压缩, 宽度：${originWidth}, 高度：${originHeight}`);
-      callback && callback(base64);
-      return;
+  const promise = new Promise(function (resolve, reject) {
+    img.onload = function () {
+      originWidth = this.width;
+      originHeight = this.height;
+  
+      if (originWidth > maxWidth) {
+        scale = originWidth / maxWidth;
+        targetWidth = maxWidth;
+        targetHeight = parseInt(originHeight / scale);
+      } else if (originHeight > maxHeight) {
+        scale = originHeight / maxHeight;
+        targetHeight = maxHeight;
+        targetWidth = parseInt(originWidth / scale);
+      } else {
+        // 不需要压缩
+        console.log(`不需要压缩, 宽度：${originWidth}, 高度：${originHeight}`);
+        resolve(base64)
+        return;
+      }
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+  
+      context.clearRect(0, 0, targetWidth, targetHeight);
+      context.drawImage(img, 0, 0, targetWidth, targetHeight);
+      console.log(`压缩成功, 宽度：${targetWidth}, 高度：${targetHeight}`);
+      resolve(canvas.toDataURL('image/png'))
     }
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-
-    context.clearRect(0, 0, targetWidth, targetHeight);
-    context.drawImage(img, 0, 0, targetWidth, targetHeight);
-    console.log(`压缩成功, 宽度：${targetWidth}, 高度：${targetHeight}`);
-    callback && callback(canvas.toDataURL('image/png'))
-  }
+  })
 
   img.src = base64;
+
+  return promise;
 }
 
 /**
@@ -111,49 +146,63 @@ function drawMosaic(options) {
   const context = canvas.getContext('2d');
   const color = '#d1d1d1'
 
-  options = offsetLocation(options);
-  console.log(options);
-  
   let imageWidth, imageHeight, data;
-  img.onload = function () {
-    canvas.width = imageWidth = this.width;
-    canvas.height = imageHeight = this.height;
-    context.clearRect(0, 0, imageWidth, imageHeight);
-    context.drawImage(img, 0, 0);
-    context.fillStyle = color;
-    context.fillRect(options.left, options.top, options.width, options.height);
-    options.callback && options.callback(canvas.toDataURL('image/png'))
-  }
+  const promise = new Promise(function (resolve, reject) {
+    img.onload = function () {
+      canvas.width = imageWidth = this.width;
+      canvas.height = imageHeight = this.height;
+      context.clearRect(0, 0, imageWidth, imageHeight);
+      context.drawImage(img, 0, 0);
+      context.fillStyle = color;
+      if (options.location.length && options.location.length > 0) {
+        for (const key in options.location) {
+          if (options.location.hasOwnProperty(key)) {
+            const element = options.location[key];
+            context.fillRect(element.left, element.top, element.width, element.height);
+          }
+        }
+      } else {
+        context.fillRect(options.location.left, options.location.top, options.location.width, options.location.height);
+      }
+      
+      resolve(canvas.toDataURL('image/png'))
+    }
+  })
   img.src = options.base64;
+
+  return promise;
 }
 
 /**
  * 调整位置
  * @param {object} options 
  */
-function offsetLocation(options) {
+function offsetLocation(location, offsetLocation) {
   let offset;
-  if (options.offsetTop) {
-    offset = options.height / 2 * options.offsetTop;
-    options.top += offset;
-    options.height -= offset;
+  if (arguments.length !== 2) return;
+  console.log(location);
+  
+  if (offsetLocation.top) {
+    offset = location.height / 2 * offsetLocation.top;
+    location.top += offset;
+    location.height -= offset;
   }
   
-  if (options.offsetBottom) {
-    offset = options.height / 2 * options.offsetBottom;
-    options.height -= offset;
+  if (offsetLocation.bottom) {
+    offset = location.height / 2 * offsetLocation.bottom;
+    location.height -= offset;
   }
 
-  if (options.offsetLeft) {
-    offset = options.width / 2 * options.offsetLeft;
-    options.left += offset;
-    options.width -= offset;
+  if (offsetLocation.left) {
+    offset = location.width / 2 * offsetLocation.left;
+    location.left += offset;
+    location.width -= offset;
   }
 
-  if (options.offsetRight) {
-    offset = options.width / 2 * options.offsetRight;
-    options.width -= offset;
+  if (offsetLocation.right) {
+    offset = location.width / 2 * offsetLocation.right;
+    location.width -= offset;
   }
 
-  return options;
+  return location;
 }
