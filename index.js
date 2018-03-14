@@ -1,5 +1,7 @@
 const token = "24.0134f23f83f85217d4c25c92f43c4e16.2592000.1523539611.282335-10922511";
 const urlParams = '?access_token=' + token;
+
+
 /**
  * 获取图片中需要打码的位置
  * @param {string} base64 
@@ -88,8 +90,8 @@ function compressImage(base64, callback) {
   const img = new Image();
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
-  const maxWidth = 600;
-  const maxHeight = 600;
+  const maxWidth = 1200;
+  const maxHeight = 1200;
 
   let originWidth, originHeight, targetWidth, targetHeight, scale;
   const promise = new Promise(function (resolve, reject) {

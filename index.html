@@ -10,10 +10,14 @@
 
 <body>
   <input type="file" multiple="multiple" id="file">
+  <label><input type="radio" name="type" value="身份证" checked>身份证</label>
+  <label><input type="radio" name="type" value="车牌照">车牌照</label>
+  <label><input type="radio" name="type" value="合同">合同</label>
   <div id="img-container"></div>
   <script src="https://cdn.bootcss.com/zepto/1.2.0/zepto.min.js"></script>
   <script src="./token.js"></script>
   <script src="./index.js"></script>
+  <script src="./main.js"></script>
   <script>
     const imgCon = document.querySelector('#img-container');
     // getToken((r)=>{
@@ -22,52 +26,20 @@
     bindFileInput('file', (base64) => {
       compressImage(base64).then((compressBase64) => {
         base64 = compressBase64.substring(compressBase64.indexOf(',') + 1);
-        getImageInfo(base64, 'idcard').then((info) => {
-          const data = info.words_result;
-          console.log(data);
-          if (data.length === 0) return;
-          let location = []
-          for (const key in data) {
-            if (key === '民族' || key === '性别') continue;
-            if (data.hasOwnProperty(key)) {
-              let element = data[key].location;
-              if (key === '住址') {
-                element.height /= 2;
-                location.push({
-                  height: element.height,
-                  top: element.top,
-                  left: element.left + element.width / 2,
-                  width: element.width / 2
-                });
-                location.push({
-                  height: element.height,
-                  top: element.top + element.height,
-                  left: element.left,
-                  width: element.width
-                });
-              } else if (key === '公民身份号码'){
-                location.push(offsetLocation(element, {left: 0.4, right: 0.4}))
-              } else if (key === '姓名'){
-                location.push(offsetLocation(element, {left: 0.4}))
-              } else if (key === '出生'){
-                location.push(offsetLocation(element, {left: 0.2}))
-              } else {
-                location.push(element)
-              }
-            }
-          }
-          drawMosaic({
-            location,
-            base64: compressBase64
-          }).then((result) => {
-            appendImage(result);
-          })
-        })
+        const type = $('[name=type]:checked').val();
+        if (type === '身份证') {
+          IDCardMosaic(base64, compressBase64);
+        } else if(type === '车牌照') {
+          carMosaic(base64, compressBase64);
+        } else if(type === '合同') {
+          textMosaic(base64, compressBase64);
+        }
+        
       })
     })
     function appendImage(result) {
       const imgElem = document.createElement('img');
-      imgElem.style.width = '400px';
+      imgElem.style.maxWidth = '1200px';
       imgElem.src = result;
       imgCon.appendChild(imgElem);
     }
