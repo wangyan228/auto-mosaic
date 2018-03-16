@@ -64,23 +64,31 @@ function getHeadImageLocation(data) {
 }
 
 function carMosaic(base64, compressBase64) {
-  getImageInfo(base64, 'license_plate').then((info) => {
+  getImageInfo(base64, 'accurate').then((info) => {
     const data = info.words_result;
-    console.log(data);
-    
-    if (data.length === 0) return;
-    const location = data[0].location;
+    if (data.length === 0) {
+      alert('未识别到车牌');
+      console.log(info);
+      return;
+    }
+    // console.log(data);
+    const reg = /\w{4}/
+    const location = data.map((value)=>{
+      return reg.test(value.words) && offsetLocation(value.location, {left: 0.5, right: 0.5});
+    });
     drawMosaic({
       location,
       base64: compressBase64
     }).then((result) => {
       appendImage(result);
     })
+  }).catch((err)=>{
+    console.log(err);
   })
 }
 
 function textMosaic(base64, compressBase64) {
-  getImageInfo(base64, 'accurate').then((info) => {
+  getImageInfo(base64, 'general').then((info) => {
     const data = info.words_result;
     console.log(data);
     

@@ -33,18 +33,6 @@ function getImageInfo(base64, type) {
     })
   })
 }
-
-function getImageCarLocation(base64) {
-  return new Promise(function (resolve, reject) {
-    $.post('https://aip.baidubce.com/rest/2.0/ocr/v1/license_plate' + urlParams, {
-      image: base64,
-    }, (r) => {
-      resolve(r)
-    }, (err)=>{
-      reject(err)
-    })
-  })
-}
 /**
  * 绑定file读取文件事件
  * 选择文件后自动调用callback
@@ -58,7 +46,7 @@ function bindFileInput(id, callback) {
     // 清除背景图片:
     // 检查文件是否选择:
     if (!fileInput.value) {
-      info.innerHTML = '没有选择文件';
+      console.log('没有选择文件');
       return;
     }
     // 读取文件:
@@ -78,7 +66,7 @@ function bindFileInput(id, callback) {
       // 以DataURL的形式读取文件:
       setTimeout(() => {
         reader.readAsDataURL(file);
-      }, 500 * index);
+      }, 1000 * index);
     }
   });
 }
